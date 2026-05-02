@@ -2,10 +2,24 @@ import React, { useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useEffect } from "react"
+import {io} from "socket.io-client"
+
 
 const Home = () => {
   const [messages, setMessages] = useState([]);
+  const userId = Number(localStorage.getItem("userId"));
   const [input, setInput] = useState("");
+  
+
+  // new socket 
+  const [socket, setSocket] = useState(null)
+  useEffect(() => {
+    const newSocket = io("http://localhost:5000")
+    setSocket(newSocket)
+    return () => {
+    newSocket.disconnect()
+    }
+  },[])
   
   // get user message 
   const getMessage =async () => {
@@ -14,8 +28,9 @@ const Home = () => {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        })
-    console.log(data)
+    })
+   
+    // console.log(data)
   } catch (error) {
     console.log(error)
   }
@@ -28,17 +43,14 @@ const Home = () => {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         })
-    console.log(data)
+    // console.log(data)
   } catch (error) {
     console.log(error)
   }
   }
-  useEffect(() => {
-    getAllMessage()
-    getMessage()
-    
-  },[])
 
+  
+  
   const sendMessage = async () => {
     if (!input.trim()) {
       return toast.error("Message cannot be empty ❌");
@@ -56,8 +68,10 @@ const Home = () => {
       );
 
       // ✅ correct update
-      setMessages((prev) => [...prev, res.data]);
-
+      // setMessages((prev) => [...prev, res.data]);
+      // socket emit to real-time  send data by socket
+      socket.emit("send_message",res.data.newMessage)
+ 
       setInput("");
     } catch (err) {
       console.log(err);
@@ -65,6 +79,26 @@ const Home = () => {
     }
   };
 
+  
+  useEffect(() => {
+  if (!socket) return; // 🔥 important
+
+  const handler = (data) => {
+    console.log("Socket data", data);
+    setMessages((prev) => [...prev, data]);
+  };
+
+  socket.on("receive_message", handler);
+
+  return () => {
+    socket.off("receive_message", handler);
+  };
+}, [socket]); // 👈 dependency add karo
+  // useEffect(() => {
+  //  getAllMessage()
+  //   getMessage()
+  // },[])
+  
   return (
     <div className="flex flex-col h-screen bg-gray-100">
       
@@ -75,14 +109,27 @@ const Home = () => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className="bg-white p-2 rounded shadow w-fit max-w-xs"
-          >
-            {msg.message}
-          </div>
-        ))}
+        {messages.map((msg, i) => {
+          if (!msg) return null;
+  const isMe = msg.userId === userId;
+
+  return (
+    <div
+      key={i}
+      className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+    >
+      <div
+        className={`p-2 rounded shadow max-w-xs ${
+          isMe
+            ? "bg-purple-500 text-white"
+            : "bg-white text-black"
+        }`}
+      >
+        {msg.message}
+      </div>
+    </div>
+  );
+})}
       </div>
 
       {/* Input */}

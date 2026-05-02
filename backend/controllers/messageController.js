@@ -14,7 +14,7 @@ console.log("message",message)
       userId: req.user.userId,
     });
 
-    res.status(201).json(newMessage); // ✅ clean response
+    res.status(201).json({newMessage}); // ✅ clean response
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "server error" });
@@ -49,7 +49,7 @@ const getAllMessage = async (req, res)=>{
        return res.status(404).json({message:"Message not found"})
        }
        
-       console.log(messages)
+      //  console.log(messages)
          return res.status(200).json({message:"Messages",messages})
        
        

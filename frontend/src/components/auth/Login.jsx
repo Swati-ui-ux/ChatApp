@@ -34,6 +34,7 @@ const Login = ({setIsLoggedIn}) => {
     );
 
     localStorage.setItem("token", res.data.token);
+    localStorage.setItem("userId",res.data.userId)
     console.log(res)
     toast.success(res.data.message);
     setIsLoggedIn(true);
