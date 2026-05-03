@@ -112,7 +112,7 @@ const Home = () => {
     return;
   }
 setEmail("")
-  // API call ya kuch bhi kaam yaha karo
+ 
 };
   
   return (
