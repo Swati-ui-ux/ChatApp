@@ -9,12 +9,17 @@ const Home = () => {
   const [messages, setMessages] = useState([]);
   const userId = Number(localStorage.getItem("userId"));
   const [input, setInput] = useState("");
-  
+ const [email,setEmail] = useState('')  
 
   // new socket 
   const [socket, setSocket] = useState(null)
   useEffect(() => {
-    const newSocket = io("http://localhost:5000")
+    const newSocket = io("http://localhost:5000", {
+      auth: {
+        token: localStorage.getItem('token')
+      }
+    })
+
     setSocket(newSocket)
     return () => {
     newSocket.disconnect()
@@ -67,8 +72,8 @@ const Home = () => {
         }
       );
 
-      // ✅ correct update
-      // setMessages((prev) => [...prev, res.data]);
+     
+      setMessages((prev) => [...prev, res.newMessage]);
       // socket emit to real-time  send data by socket
       socket.emit("send_message",res.data.newMessage)
  
@@ -81,10 +86,9 @@ const Home = () => {
 
   
   useEffect(() => {
-  if (!socket) return; // 🔥 important
+  if (!socket) return;
 
   const handler = (data) => {
-    console.log("Socket data", data);
     setMessages((prev) => [...prev, data]);
   };
 
@@ -93,19 +97,43 @@ const Home = () => {
   return () => {
     socket.off("receive_message", handler);
   };
-}, [socket]); // 👈 dependency add karo
+}, [socket]); 
   // useEffect(() => {
   //  getAllMessage()
   //   getMessage()
   // },[])
   
+  
+  const handleSend = () => {
+  console.log("Email:", email);
+
+  if (!email.trim()) {
+    alert("Email required ❌");
+    return;
+  }
+setEmail("")
+  // API call ya kuch bhi kaam yaha karo
+};
+  
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div className=" h-screen bg-gray-100">
       
       {/* Header */}
       <div className="bg-purple-500 text-white p-4 text-xl font-bold">
         Chat App 💬
       </div>
+      <input
+        className=" mt-2 border p-2 rounded"
+        value={email}
+        onChange={(e)=>setEmail(e.target.value)}
+        type="text"
+        placeholder="Enter email" />
+      <button
+        onClick={handleSend}
+          className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
+        >
+          Send
+        </button>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
