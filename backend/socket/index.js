@@ -1,7 +1,7 @@
 const { Server } = require("socket.io")
 const socketAuth = require("../socket/middleware")
 const chat = require("../socket/handlers/chat")
-
+const personalChatHandler = require("./handlers/personalChatHandler")
 module.exports = (server) => {
   const io = new Server(server, {
     cors: {
@@ -12,7 +12,8 @@ module.exports = (server) => {
   socketAuth(io)
 
   io.on("connection", (socket) => {
-    chat(socket, io)
+      chat(socket, io)
+      personalChatHandler(socket,io)
   })
 
   return io

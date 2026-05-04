@@ -4,7 +4,6 @@ const Message = require("../models/message");
 const sendMessage = async (req, res) => {
   try {
     const { message } = req.body;
-console.log("message",message)
     if (!message || message.trim() === "") {
       return res.status(400).json({ message: "Message is required ❌" });
     }
