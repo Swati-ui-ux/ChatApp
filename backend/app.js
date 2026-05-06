@@ -6,10 +6,13 @@ const PORT = process.env.PORT||3000
 const {Server} = require("socket.io")
 const cors = require("cors")
 require("./models")
-
+require("./cron/deleteMessages")
 const server = http.createServer(app)
 const authMiddleware = require("./middlewares/authMiddleware")
 const socketIO = require('./socket/index')
+
+
+
 // importent middleware 
 app.use(express.json())
 app.use(cors())

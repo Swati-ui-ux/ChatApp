@@ -10,7 +10,13 @@ const Messages = sequelize.define("message", {
     message: {
         type: DataTypes.STRING,
         allowNull:false,
-    }
+    },
+    room: {
+    type: DataTypes.STRING,
+  },
+  chatType: {
+    type: DataTypes.STRING,
+  }
 
 }, { timestamps: true })
 

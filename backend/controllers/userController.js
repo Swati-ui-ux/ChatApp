@@ -45,12 +45,33 @@ try {
     if (!isMatch) {
     return res.status(404).json({message:"wrong password"})
     }
-    const token = jwt.sign({userId:user.id,email:user.email},process.env.SECRET_KEY,{expiresIn:"1d"})
+    const token = jwt.sign({ userId: user.id, email: user.email }, process.env.SECRET_KEY, { expiresIn: "1d" })
+   
+    
     console.log("Token", token)
-     return res.status(200).json({message:"login success",token,userId:user.id})
+     return res.status(200).json({message:"login success",token,userId:user.id,email,name:user.name})
 } catch (error) {
     console.log(error)
      return res.status(500).json({message:"server error"})
 }
 }
-module.exports = {signupUser,loginUser}
+
+const checkEmail = async (req, res) => {
+try {
+    const { email } = req.body
+    const user = await User.findOne({
+        where: {
+            email,
+        }
+    })
+    if (!user) {
+    return res.status(404).json({ success: false, message: "Email not found" });
+    }
+     return res.status(200).json({ success: true, message: "User found", user });
+} catch (error) {
+     return res.status(500).json({ success: false, message: err.message });
+}
+
+}
+
+module.exports = {signupUser,loginUser,checkEmail}

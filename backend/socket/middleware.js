@@ -17,7 +17,10 @@ module.exports = (io) => {
         return next(new Error("User not found"))
       }
 
-      socket.user = user
+      socket.user = user,
+      socket.userId = decoded.userId; 
+      
+      socket.name = user.name;
       next()
     } catch (error) {
       console.log("Socket Auth Error:", error.message)

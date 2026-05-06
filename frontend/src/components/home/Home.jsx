@@ -1,70 +1,156 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { useEffect } from "react"
-import {io} from "socket.io-client"
+import { io } from "socket.io-client";
+import { useNavigate } from "react-router-dom";
 
-
-const Home = () => {
+const Home = ({ setIsLoggedIn }) => {
   const [messages, setMessages] = useState([]);
-  const userId = Number(localStorage.getItem("userId"));
+  const [chatType, setChatType] = useState("personal");
+  const [groupId, setGroupId] = useState("");
+  const [room, setRoom] = useState("");
+  const [typingUser, setTypingUser] = useState("");
+
   const [input, setInput] = useState("");
- const [email,setEmail] = useState('')  
+  const [email, setEmail] = useState("");
 
-  // new socket 
-  const [socket, setSocket] = useState(null)
+  const userId = Number(localStorage.getItem("userId"));
+  const name = localStorage.getItem("name");
+
+  const socketRef = useRef(null);
+  const messagesEndRef = useRef(null);
+  const typingTimeout = useRef(null);
+
+  const navigate = useNavigate();
+
+  // Socket connect
   useEffect(() => {
-    const newSocket = io("http://localhost:5000", {
-      auth: {
-        token: localStorage.getItem('token')
-      }
-    })
+    const socket = io("http://localhost:5000", {
+      auth: { token: localStorage.getItem("token") },
+    });
 
-    setSocket(newSocket)
-    return () => {
-    newSocket.disconnect()
-    }
-  },[])
-  
-  // get user message 
-  const getMessage =async () => {
+    socketRef.current = socket;
+
+    // message receive FIXED
+    socket.on("receive_message", (data) => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          message: data.message || data.data,
+          userId: data.userId,
+          name: data.name,
+          createdAt: data.createdAt || new Date(),
+        },
+      ]);
+    });
+
+    // typing
+    socket.on("show_typing", ({ name }) => {
+      setTypingUser(name);
+    });
+
+    socket.on("hide_typing", () => {
+      setTypingUser("");
+    });
+
+    return () => socket.disconnect();
+  }, []);
+
+  // fetch messages
+  const fetchMessages = async (roomName) => {
   try {
-    const { data } = await axios.get("http://localhost:5000/message", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-    })
-   
-    // console.log(data)
-  } catch (error) {
-    console.log(error)
-  }
-  }
-  
-  const getAllMessage =async () => {
-   try {
-    const { data } = await axios.get("http://localhost:5000/message/all", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        })
-    // console.log(data)
-  } catch (error) {
-    console.log(error)
-  }
-  }
+    const res = await axios.get(
+      `http://localhost:5000/message/all?room=${roomName}`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
 
+     setMessages(
+      Array.isArray(res.data)
+        ? res.data
+        : res.data.messages || []
+    );
+  } catch (err) {
+    console.log(err);
+    toast.error("Failed to load messages ❌");
+  }
+};
   
   
-  const sendMessage = async () => {
-    if (!input.trim()) {
-      return toast.error("Message cannot be empty ❌");
-    }
+  
+  // auto scroll
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  //  Join Room
+  const handleJoin = async () => {
+    const socket = socketRef.current;
+    const myEmail = localStorage.getItem("email");
+
+    if (!socket) return;
 
     try {
-      const res = await axios.post(
+      if (chatType === "personal") {
+        if (!email.trim()) return toast.error("Email required");
+
+        await axios.post("http://localhost:5000/users/check-email", {
+          email,
+        });
+
+        const roomName = [myEmail, email].sort().join("_");
+
+        setRoom(roomName);
+        // setMessages([]);
+
+        socket.emit("join-room", roomName);
+        await fetchMessages(roomName)
+        toast.success("Joined personal chat ✅");
+      } else {
+        if (!groupId.trim()) return toast.error("Group ID required");
+
+        setRoom(groupId);
+        // setMessages([]);
+
+        socket.emit("join-room", groupId);
+        await fetchMessages(groupId)
+        toast.success("Joined group chat ✅");
+      }
+    } catch (err) {
+      toast.error("Join failed ❌");
+    }
+  };
+
+  // Typing handler (UNCHANGED BEHAVIOR)
+  const handleTyping = (e) => {
+    setInput(e.target.value);
+
+    const socket = socketRef.current;
+    if (!room || !socket) return;
+
+    socket.emit("typing", { roomName: room, name });
+
+    clearTimeout(typingTimeout.current);
+
+    typingTimeout.current = setTimeout(() => {
+      socket.emit("stop_typing", room);
+    }, 1000);
+  };
+
+  // Send Message
+  const sendMessage = async () => {
+    const socket = socketRef.current;
+
+    if (!input.trim()) return toast.error("Empty message ❌");
+    if (!room) return toast.error("Join chat first ❌");
+
+    try {
+      await axios.post(
         "http://localhost:5000/message",
-        { message: input },
+        { message: input, room, chatType },
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -72,129 +158,149 @@ const Home = () => {
         }
       );
 
-     
-      setMessages((prev) => [...prev, res.newMessage]);
-      // socket emit to real-time  send data by socket
-      // socket.emit("send_message",res.data.newMessage)
-      console.log("email", email)
-      // console.log(res)
-      socket.emit("new_message", { data: res.data.newMessage.message, roomName: email })
-     
+      socket.emit("new_message", {
+        message: input,
+        roomName: room,
+        userId,
+        name,
+      });
+
       setInput("");
+      socket.emit("stop_typing", room);
     } catch (err) {
-      console.log(err);
-      toast.error("Failed to send message ❌");
+      toast.error("Send failed ❌");
     }
   };
 
-  
-  useEffect(() => {
-  if (!socket) return;
-
-  const handler = (data) => {
-    console.log("data", data);
-    const message = data.data
-    console.log(message)
-    const user = data.userId
-    console.log(user)
-    setMessages((prev) => [...prev, {userId:user,message}]);
+  const handleLogout = () => {
+    localStorage.clear();
+    setIsLoggedIn(false);
+    navigate("/login");
   };
-  socket.on("receive_message", handler);
 
-  return () => {
-    socket.off("receive_message", handler);
-  };
-}, [socket]); 
-  // useEffect(() => {
-  //  getAllMessage()
-  //   getMessage()
-  // },[])
-  
-  
-  const handleSend = () => {
-  console.log("Email:", email);
+  // SAFE FILTER (important fix)
+  const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
 
-   
-  if (!email.trim()) {
-    alert("Email required ❌");
-    return;
-    }
-    socket.emit("join-room", email)
-    
+  const filteredMessages = messages.filter((msg) => {
+    if (!msg.createdAt) return true; // ⚠️ do not break UI
+    return new Date(msg.createdAt) > twoDaysAgo;
+  });
 
- 
-}; 
-  
   return (
-  <div className="flex flex-col h-screen bg-gray-100">
+    <div className="flex flex-col h-screen bg-gray-100">
+      
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 flex justify-between items-center shadow">
+        <span className="text-lg font-bold">Chat App 💬</span>
 
-    {/* Header */}
-    <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 text-xl font-bold shadow">
-      Chat App 💬
-    </div>
-
-    {/* Join Room */}
-    <div className="p-4 bg-white flex gap-2 shadow">
-      <input
-        className="flex-1 border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-purple-400"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        type="text"
-        placeholder="Enter email to join room..."
-      />
-      <button
-        onClick={handleSend}
-        className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 transition"
-      >
-        Join
-      </button>
-    </div>
-
-    {/* Messages */}
-    <div className="flex-1 overflow-y-auto p-4 space-y-3">
-      {messages.map((msg, i) => {
-        if (!msg) return null;
-        
-        const isMe = msg.userId === userId;
-
-        return (
-          <div
-            key={i}
-            className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`p-3 rounded-2xl shadow max-w-xs break-word ${
-                isMe
-                  ? "bg-lineae-to-r from-purple-500 to-pink-500 text-white"
-                  : "bg-white text-gray-800"
-              }`}
-            >
-              {msg.message}
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">
+            👤 {name || "User"}
           </div>
-        );
-      })}
-    </div>
 
-    {/* Input */}
-    <div className="p-4 bg-white flex gap-2 shadow">
-      <input
-        type="text"
-        className="flex-1 border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-purple-400"
-        placeholder="Type a message..."
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-      />
-      <button
-        onClick={sendMessage}
-        className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 transition"
-      >
-        Send
-      </button>
-    </div>
+          <button
+            onClick={handleLogout}
+            className="bg-white text-purple-600 px-3 py-1 rounded text-sm font-semibold hover:bg-gray-100 transition"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
 
-  </div>
-);
+      {/* Toggle */}
+      <div className="p-2 flex gap-2 bg-white shadow rounded-lg w-fit mx-4 mt-2">
+        <button
+          onClick={() => setChatType("personal")}
+          className={`px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 ${
+            chatType === "personal"
+              ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          Personal
+        </button>
+
+        <button
+          onClick={() => setChatType("group")}
+          className={`px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 ${
+            chatType === "group"
+              ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          Group
+        </button>
+      </div>
+
+      {/* Join */}
+      <div className="p-4 flex gap-2">
+        {chatType === "personal" ? (
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter email..."
+            className="border border-gray-400 p-2 flex-1 rounded-md"
+          />
+        ) : (
+          <input
+            value={groupId}
+            onChange={(e) => setGroupId(e.target.value)}
+            placeholder="Enter group ID..."
+            className="border border-gray-400 p-2 flex-1 rounded-md"
+          />
+        )}
+        <button
+          onClick={handleJoin}
+          className="bg-purple-400 cursor-pointer px-6 rounded-md text-white"
+        >
+          Join
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4">
+
+        {/* Typing */}
+        {typingUser && (
+          <div className="text-sm text-gray-500 italic px-2 mb-2">
+            {typingUser} is typing...
+          </div>
+        )}
+
+        {filteredMessages.map((msg, i) => {
+          const isMe = msg.userId === userId;
+
+          return (
+            <div key={i} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+              <div className={`p-2 m-1 rounded ${
+                isMe ? "bg-purple-500 text-white" : "bg-white"
+              }`}>
+                {msg.message}
+                <div className="text-xs">{isMe ? "You" : msg.name}</div>
+              </div>
+            </div>
+          );
+        })}
+
+        <div ref={messagesEndRef}></div>
+      </div>
+
+      {/* Input */}
+      <div className="p-4 flex gap-2">
+        <input
+          value={input}
+          onChange={handleTyping}
+          className="border border-gray-400 p-2 flex-1 focus:border-pink-700 rounded-md"
+        />
+        <button
+          onClick={sendMessage}
+          className="bg-pink-500 px-6 rounded-md text-white cursor-pointer"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  );
 };
 
 export default Home;

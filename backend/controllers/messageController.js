@@ -1,19 +1,24 @@
 const Message = require("../models/message");
-
+const User = require('../models/users')
 // send messageon db
 const sendMessage = async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, chatType, room } = req.body;
+
     if (!message || message.trim() === "") {
       return res.status(400).json({ message: "Message is required ❌" });
     }
 
+    console.log("REQ.USER:", req.user); //  debug
+
     const newMessage = await Message.create({
       message,
-      userId: req.user.userId,
+      room,
+      chatType,
+      userId: req.user.userId, // correct
     });
 
-    res.status(201).json({newMessage}); // ✅ clean response
+    res.status(201).json({ newMessage });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "server error" });
@@ -41,22 +46,35 @@ order:[['createdAt','ASC']]
 }
 
 // get all db message
-const getAllMessage = async (req, res)=>{
-   try {
-       const messages = await Message.findAll({});
-       if (!messages) {
-       return res.status(404).json({message:"Message not found"})
-       }
-       
-      //  console.log(messages)
-         return res.status(200).json({message:"Messages",messages})
-       
-       
-   } catch (error) {
-       console.log(error)
-      return res.status(500).json({message:"server error"})
-       
-   }
+const getAllMessage = async (req, res) => {
+  try {
+    const { room } = req.query;
+
+    const messages = await Message.findAll({
+      where: { room },
+      include: [
+        {
+          model: User,
+          attributes: ["name"],
+        },
+      ],
+      order: [["createdAt", "ASC"]],
+    });
+
+   const formattedMessages = messages.map((msg) => ({
+  message: msg.message,
+  userId: msg.userId,
+  name: msg.User?.name || "Unknown",
+  createdAt: msg.createdAt,
+}));
+
+    console.log("DEBUG:", formattedMessages);
+
+    return res.status(200).json(formattedMessages);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "server error" });
+  }
 }
 
 module.exports = {sendMessage,getMessage,getAllMessage};
