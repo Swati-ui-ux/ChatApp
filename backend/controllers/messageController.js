@@ -60,11 +60,10 @@ const getAllMessage = async (req, res) => {
       ],
       order: [["createdAt", "ASC"]],
     });
-
    const formattedMessages = messages.map((msg) => ({
   message: msg.message,
   userId: msg.userId,
-  name: msg.User?.name || "Unknown",
+  name: msg.user?.name || "Unknown",
   createdAt: msg.createdAt,
 }));
 

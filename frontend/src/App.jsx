@@ -5,6 +5,8 @@ import SignUp from "./components/auth/Signup";
 import Home from "./components/home/Home";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import ForgotPassword from "./components/EmailServices/ForgotPassword"
+import ResetPassword from "./components/EmailServices/ResetPassword"
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -56,6 +58,8 @@ const App = () => {
             )
           }
         />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+         <Route path="/reset-password/:token" element={<ResetPassword/>} />
       </Routes>
     </div>
   );

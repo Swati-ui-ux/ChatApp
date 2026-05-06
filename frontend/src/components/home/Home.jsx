@@ -69,9 +69,7 @@ const Home = ({ setIsLoggedIn }) => {
     );
 
      setMessages(
-      Array.isArray(res.data)
-        ? res.data
-        : res.data.messages || []
+      res.data
     );
   } catch (err) {
     console.log(err);
