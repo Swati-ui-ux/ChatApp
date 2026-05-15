@@ -1,16 +1,18 @@
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
+import { useChat } from "../context/ChatContext"
 
 function ResetPassword() {
   const { token } = useParams();
+  const {url} = useChat()
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
 const navigate = useNavigate()
   const handleSubmit = async () => {
     try {
       await axios.post(
-        `http://localhost:5000/users/reset-password/${token}`,
+        `${url}/users/reset-password/${token}`,
         { password }
         );
         navigate("/")

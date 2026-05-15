@@ -20,9 +20,15 @@ export const ChatProvider = ({ children }) => {
   const userId = Number(localStorage.getItem("userId"));
   const name = localStorage.getItem("name");
 
+  const url = 'http://localhost:3307';
+  const config =  {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
   // socket connection
   useEffect(() => {
-    const socket = io("http://localhost:5000", {
+    const socket = io(`${url}`, {
       auth: {
         token: localStorage.getItem("token"),
       },
@@ -58,12 +64,6 @@ export const ChatProvider = ({ children }) => {
     };
   }, []);
 
-  const url = 'http://localhost:5000';
-  const config =  {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
   
   // fetch old messages
   const fetchMessages = async (roomName) => {
