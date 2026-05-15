@@ -58,16 +58,19 @@ export const ChatProvider = ({ children }) => {
     };
   }, []);
 
-  // fetch old messages
-  const fetchMessages = async (roomName) => {
-    try {
-      const res = await axios.get(
-        `http://localhost:5000/message/all?room=${roomName}`,
-        {
+  const url = 'http://localhost:5000';
+  const config =  {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
+  
+  // fetch old messages
+  const fetchMessages = async (roomName) => {
+    try {
+      const res = await axios.get(
+        `${url}/message/all?room=${roomName}`,
+       config
       );
 
       setMessages(res.data);
@@ -91,7 +94,7 @@ export const ChatProvider = ({ children }) => {
           return toast.error("email required");
         }
 
-        await axios.post("http://localhost:5000/users/check-email", {
+        await axios.post(`${url}/users/check-email`, {
           email,
         });
 
@@ -160,17 +163,13 @@ export const ChatProvider = ({ children }) => {
 
     try {
       await axios.post(
-        "http://localhost:5000/message",
+        `${url}/message`,
         {
           message: input,
           room,
           chatType,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
+       config
       );
 
       socket.emit("new_message", {

@@ -1,6 +1,6 @@
 const nodemailer = require("nodemailer")
 require("dotenv").config()
-console.log("email", process.env.EMAIL, "Password", process.env.EMAIL_PASSWORD)
+// console.log("email", process.env.EMAIL, "Password", process.env.EMAIL_PASSWORD)
 
 const sendEmail = async (email, link) => {
     const transporter = nodemailer.createTransport({

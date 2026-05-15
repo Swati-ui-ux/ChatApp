@@ -4,7 +4,7 @@ import {  toast } from "react-toastify";
 import { useNavigate } from "react-router-dom"
 import { Link } from "react-router-dom";
 
-function SignUp() {
+function SignUp({setIsLoggedIn}) {
 
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
@@ -35,9 +35,8 @@ function SignUp() {
       formData
     );    
     toast.success(res.data.messsage);
-    // localStorage.setItem("token", res.data.token)
-    // navigate("/login")
-   
+    setIsLoggedIn(false)
+    navigate("/login")
     setFormData({
       name: "",
       email: "",

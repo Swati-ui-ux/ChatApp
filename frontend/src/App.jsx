@@ -52,7 +52,7 @@ const App = () => {
           path="/signup"
           element={
             !isLoggedIn ? (
-              <SignUp />
+              <SignUp setIsLoggedIn={setIsLoggedIn} />
             ) : (
               <Navigate to="/" />
             )
