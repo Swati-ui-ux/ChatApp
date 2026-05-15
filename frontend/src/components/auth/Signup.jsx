@@ -3,9 +3,11 @@ import axios from "axios";
 import {  toast } from "react-toastify";
 import { useNavigate } from "react-router-dom"
 import { Link } from "react-router-dom";
+import { useChat } from "../context/ChatContext"
 
 function SignUp({setIsLoggedIn}) {
-
+  const { url } = useChat()
+  console.log(url)
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     name: "",
@@ -31,7 +33,7 @@ function SignUp({setIsLoggedIn}) {
     console.log(formData)
 
     const res = await axios.post(
-      "http://localhost:5000/users/signup",
+      `${url}/users/signup`,
       formData
     );    
     toast.success(res.data.messsage);

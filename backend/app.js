@@ -2,6 +2,7 @@ const express = require("express")
 const app = express()
 const db = require("./utils/db-connection")
 const http = require("http")
+require("dotenv").config()
 const PORT = process.env.PORT||3000
 const {Server} = require("socket.io")
 const cors = require("cors")

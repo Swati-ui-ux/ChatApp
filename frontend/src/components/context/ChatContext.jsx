@@ -220,6 +220,7 @@ export const ChatProvider = ({ children }) => {
         handleTyping,
         sendMessage,
         filteredMessages,
+        url,
       }}
     >
       {children}

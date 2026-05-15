@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import axios from 'axios'
 import { useNavigate,Link } from 'react-router-dom'
 
 import { toast } from 'react-toastify'
+import { useChat } from '../context/ChatContext'
 const Login = ({setIsLoggedIn}) => {
-
+  const {url} = useChat()
   
  const navigate =  useNavigate()
   const [formData, setFormData] = useState({
@@ -29,7 +30,7 @@ const Login = ({setIsLoggedIn}) => {
 
   try {
     const res = await axios.post(
-      "http://localhost:5000/users/login",
+      `${url}/users/login`,
       formData
     );
 
