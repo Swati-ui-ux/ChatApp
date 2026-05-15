@@ -15,7 +15,9 @@ const {url} = useChat()
 
       toast.success("Reset link sent to your email")
     } catch (error) {
-      toast.error("Something went wrong")
+        // console.log(error.response.data.message)
+
+  toast.error(error.response.data.message)
     }
   }
 

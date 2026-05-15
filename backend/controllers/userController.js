@@ -79,21 +79,60 @@ try {
 
 
 const forgotPassword = async (req, res) => {
-    const { email } = req.body
-    // console.log("Email in forgot",email)
-    const user = await User.findOne({where:{email} })
-    // console.log("User in forgot",user)
+  try {
+
+    // console.log("api hit");
+
+    const { email } = req.body;
+
+    // console.log("email", email);
+
+    const user = await User.findOne({
+      where: { email }
+    });
+
+    // console.log("user", user);
+
     if (!user) {
-    return res.status(404).json({message:"User not found"})
+      return res.status(404).json({
+        message: "User not found"
+      });
     }
-    const token = crypto.randomBytes(32).toString("hex")
-    user.resetToken = token
-    user.resetTokenExpire = Date.now() + 60 * 60 * 1000
-    await user.save()
-    const link = `http://localhost:5173/reset-password/${token}`
-    await sendEmail(email, link)
-    res.json({message:"Reset link sent"})
-}
+
+    const token = crypto.randomBytes(32).toString("hex");
+
+    // console.log("token generated");
+
+    user.resetToken = token;
+
+    user.resetTokenExpire = Date.now() + 60 * 60 * 1000;
+
+    await user.save();
+
+    // console.log("user saved");
+
+    const link = `http://localhost:5173/reset-password/${token}`;
+
+    // console.log("before send email");
+
+    await sendEmail(email, link);
+
+    // console.log("after send email");
+
+    res.json({
+      message: "Reset link sent"
+    });
+
+  } catch (error) {
+
+    // console.log("forgot error", error);
+
+    res.status(500).json({
+      message: "server error",
+      error: error.message
+    });
+  }
+};
 
 
 const resetPassword = async (req,res) => {
