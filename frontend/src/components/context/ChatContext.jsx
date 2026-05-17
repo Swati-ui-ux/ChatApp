@@ -20,7 +20,7 @@ export const ChatProvider = ({ children }) => {
   const userId = Number(localStorage.getItem("userId"));
   const name = localStorage.getItem("name");
 
-  const url = 'https://chatapp-backend-new.onrender.com';
+  const url = 'https://chatappbackend-owf1.onrender.com';
   const config =  {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
